@@ -3,13 +3,10 @@ Fated Rolls Module
 Allows the GM to force player roll results in FoundryVTT
 */
 
-// Main class for handling forced player rolls set by the GM
 class FatedRolls {
-    static forcedRolls = {};
 
-    // Initialize settings, menus, and hooks
     static init() {
-        // Register GM menu to configure forced rolls
+        // Register GM menu
         game.settings.registerMenu('fated-rolls', 'forcedRollsMenu', {
             name: "Forced Rolls Control",
             label: "Configure Forced Rolls",
@@ -17,7 +14,7 @@ class FatedRolls {
             restricted: true
         });
 
-        // Store forced roll data in world settings
+        // Register forced roll data storage
         game.settings.register('fated-rolls', 'forcedRollData', {
             scope: 'world',
             config: false,
@@ -25,57 +22,84 @@ class FatedRolls {
             type: Object
         });
 
-        // Hook into roll creation to intercept and modify rolls
+        // Hook into roll creation
         Hooks.on('preCreateChatMessage', FatedRolls.onPreCreateChatMessage);
     }
 
-    // Retrieves the next forced roll result for a specific player (userId)
+    // Get next forced roll value for a user
     static getForcedRollForUser(userId) {
         const data = game.settings.get('fated-rolls', 'forcedRollData') || {};
         if (!data[userId] || !data[userId].length) return undefined;
-        return data[userId][0]; // Return the first forced result in the queue
+        return data[userId][0];
     }
 
-    // Removes the used forced roll result from the player's queue
+    // Remove used forced result
     static consumeForcedRoll(userId) {
         const data = game.settings.get('fated-rolls', 'forcedRollData') || {};
         if (!data[userId]) return;
-        data[userId].shift(); // Remove the used forced result
+        data[userId].shift();
         game.settings.set('fated-rolls', 'forcedRollData', data);
     }
 
-    // Hook that intercepts player roll messages and overrides the result if a forced roll is set
+    // Hook: Intercept and enforce forced rolls
     static async onPreCreateChatMessage(message, options, userId) {
-        if (!game.user.isGM) return; // Only allow GM to control rolls
-
         const roll = message.rolls?.[0];
-        if (!roll) return; // Exit if no roll is present
+        if (!roll) return;
 
-        const forcedResult = FatedRolls.getForcedRollForUser(message.user.id);
-        if (forcedResult === undefined) return; // Exit if no forced roll is queued
+        const targetUserId = message.userId;
+        const forcedResult = FatedRolls.getForcedRollForUser(targetUserId);
+        if (forcedResult === undefined) return;
 
-        const newRoll = Roll.fromData(roll.toJSON());
-        newRoll.terms.forEach(term => {
-            if (term instanceof Die) {
-                term.results.forEach(r => r.result = forcedResult); // Override each die result
-            }
-        });
+        // Case 1: Roll not yet evaluated (e.g., system roll, sheet roll)
+        if (!roll._evaluated) {
+            roll.terms.forEach(term => {
+                if (term instanceof Die) {
+                    term.results = [];
+                    for (let i = 0; i < term.number; i++) {
+                        term.results.push({ result: forcedResult, active: true });
+                    }
+                }
+            });
 
-        await newRoll.evaluate({ async: true }); // Re-evaluate the modified roll
+            await roll.evaluate({ async: true });
 
-        await message.update({ content: await newRoll.render(), roll: newRoll.toJSON() });
+            await message.update({
+                content: await roll.render(),
+                roll: roll.toJSON()
+            });
 
-        ui.notifications.info(`Forced roll applied: ${forcedResult}`); // Notify GM
-        FatedRolls.consumeForcedRoll(message.user.id); // Consume forced result
+        } else {
+            // Case 2: Already evaluated roll (e.g., /r 1d20 in chat)
+            const newRoll = Roll.fromData(roll.toJSON());
+            newRoll.terms.forEach(term => {
+                if (term instanceof Die) {
+                    term.results = [];
+                    for (let i = 0; i < term.number; i++) {
+                        term.results.push({ result: forcedResult, active: true });
+                    }
+                }
+            });
+
+            await newRoll.evaluate({ async: true });
+
+            await message.update({
+                content: await newRoll.render(),
+                roll: newRoll.toJSON()
+            });
+        }
+
+        // Notify GM
+        ui.notifications.info(`Forced roll applied: ${forcedResult}`);
+
+        // Consume forced roll
+        FatedRolls.consumeForcedRoll(targetUserId);
     }
 }
 
-// Register initialization hook
 Hooks.once('init', () => {
     FatedRolls.init();
 });
 
-// GM Configuration Form for managing forced rolls per player
 class ForcedRollsConfigApp extends FormApplication {
     static get defaultOptions() {
         return mergeObject(super.defaultOptions, {
@@ -86,13 +110,14 @@ class ForcedRollsConfigApp extends FormApplication {
         });
     }
 
-    // Load current data for the configuration form
     async getData() {
         const data = game.settings.get('fated-rolls', 'forcedRollData') || {};
-        return { users: game.users.contents, forcedRolls: data };
+        return {
+            users: game.users.contents,
+            forcedRolls: data
+        };
     }
 
-    // Handle form submission and save updated forced roll data
     async _updateObject(event, formData) {
         const newData = expandObject(formData);
         await game.settings.set('fated-rolls', 'forcedRollData', newData.forcedRolls);
