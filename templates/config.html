@@ -1,0 +1,12 @@
+
+<form>
+  <h2>Forced Rolls Configuration</h2>
+  {{#each users as |user|}}
+    <div class="form-group">
+      <label>{{user.name}} ({{user.id}})</label>
+      <input type="text" name="forcedRolls.{{user.id}}" value="{{lookup ../forcedRolls user.id}}">
+      <p class="hint">Comma-separated roll results (e.g., 20,1,15)</p>
+    </div>
+  {{/each}}
+  <button type="submit">Save</button>
+</form>

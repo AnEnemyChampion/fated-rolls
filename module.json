@@ -1,0 +1,17 @@
+
+{
+  "name": "fated-rolls",
+  "title": "Fated Rolls",
+  "description": "Fate has already been decided.",
+  "version": "1.0.0",
+  "author": "AnEnemyChampion",
+  "minimumCoreVersion": "10",
+  "compatibleCoreVersion": "11",
+  "scripts": ["scripts/fated-rolls.js"],
+  "styles": [],
+  "packs": [],
+  "languages": [],
+  "url": "",
+  "manifest": "",
+  "download": ""
+}
