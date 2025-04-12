@@ -1,17 +1,20 @@
-
 {
   "name": "fated-rolls",
   "title": "Fated Rolls",
-  "description": "Fate has already been decided.",
+  "description": "Allows the GM to control and force the outcome of player rolls.",
   "version": "1.0.0",
-  "author": "AnEnemyChampion",
+  "authors": [
+    {
+      "name": "AnEnemyChampion"
+    }
+  ],
   "minimumCoreVersion": "10",
   "compatibleCoreVersion": "11",
-  "scripts": ["scripts/fated-rolls.js"],
+  "scripts": [ "scripts/fated-rolls.js" ],
   "styles": [],
   "packs": [],
   "languages": [],
-  "url": "",
-  "manifest": "",
-  "download": ""
+  "url": "https://github.com/AnEnemyChampion/fated-rolls",
+  "manifest": "https://raw.githubusercontent.com/AnEnemyChampion/fated-rolls/main/module.json",
+  "download": "https://github.com/AnEnemyChampion/fated-rolls/archive/refs/heads/main.zip"
 }
